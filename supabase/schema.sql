@@ -132,6 +132,18 @@ create table if not exists public.follows (
 create index if not exists follows_following_id_idx on public.follows (following_id);
 create index if not exists follows_follower_id_idx on public.follows (follower_id);
 
+-- Favorites are a private "save for later" list, unlike likes: no public
+-- count is kept on animations, only the join row itself.
+create table if not exists public.animation_favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  animation_id uuid not null references public.animations (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, animation_id)
+);
+create index if not exists animation_favorites_animation_id_idx on public.animation_favorites (animation_id);
+create index if not exists animation_favorites_user_id_idx on public.animation_favorites (user_id);
+
 -- Row Level Security
 alter table public.profiles enable row level security;
 alter table public.animations enable row level security;
@@ -139,6 +151,7 @@ alter table public.trusted_devices enable row level security;
 alter table public.animation_likes enable row level security;
 alter table public.comments enable row level security;
 alter table public.follows enable row level security;
+alter table public.animation_favorites enable row level security;
 
 create policy "Profiles are publicly readable" on public.profiles
   for select using (true);
@@ -176,3 +189,10 @@ create policy "Users can follow as themselves" on public.follows
   for insert with check (auth.uid() = follower_id);
 create policy "Users can unfollow as themselves" on public.follows
   for delete using (auth.uid() = follower_id);
+
+create policy "Users can read their own favorites" on public.animation_favorites
+  for select using (auth.uid() = user_id);
+create policy "Users can favorite as themselves" on public.animation_favorites
+  for insert with check (auth.uid() = user_id);
+create policy "Users can unfavorite their own favorite" on public.animation_favorites
+  for delete using (auth.uid() = user_id);

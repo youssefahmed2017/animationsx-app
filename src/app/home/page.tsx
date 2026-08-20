@@ -49,21 +49,28 @@ export default async function HomePage() {
   const CARD_FIELDS =
     "id, slug, title, description, category, tags, view_count, fork_count, like_count, author_id, profiles(username, avatar_url)";
 
-  const [{ data: recent }, { data: followingAnimations }] = await Promise.all([
-    supabase
-      .from("animations")
-      .select(CARD_FIELDS)
-      .order("created_at", { ascending: false })
-      .limit(RECENT_LIMIT),
-    followingIds.length > 0
-      ? supabase
-          .from("animations")
-          .select(CARD_FIELDS)
-          .in("author_id", followingIds)
-          .order("created_at", { ascending: false })
-          .limit(RECENT_LIMIT)
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [{ data: recent }, { data: followingAnimations }, { data: favoriteRows }] =
+    await Promise.all([
+      supabase
+        .from("animations")
+        .select(CARD_FIELDS)
+        .order("created_at", { ascending: false })
+        .limit(RECENT_LIMIT),
+      followingIds.length > 0
+        ? supabase
+            .from("animations")
+            .select(CARD_FIELDS)
+            .in("author_id", followingIds)
+            .order("created_at", { ascending: false })
+            .limit(RECENT_LIMIT)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("animation_favorites")
+        .select(`animations(${CARD_FIELDS})`)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(RECENT_LIMIT),
+    ]);
 
   const toCards = (rows: typeof recent): AnimationCardData[] =>
     (rows ?? []).map((a) => ({
@@ -73,6 +80,11 @@ export default async function HomePage() {
 
   const recentCards = toCards(recent);
   const followingCards = toCards(followingAnimations);
+  const favoriteCards = toCards(
+    (favoriteRows ?? [])
+      .map((r) => (Array.isArray(r.animations) ? r.animations[0] : r.animations))
+      .filter((a): a is NonNullable<typeof a> => a != null)
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8">
@@ -115,6 +127,17 @@ export default async function HomePage() {
             <h2 className="text-lg font-semibold mb-4">From people you follow</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {followingCards.map((a) => (
+                <AnimationCard key={a.id} animation={a} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {favoriteCards.length > 0 && (
+          <>
+            <h2 className="text-lg font-semibold mb-4">Your favorites</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {favoriteCards.map((a) => (
                 <AnimationCard key={a.id} animation={a} />
               ))}
             </div>

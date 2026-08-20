@@ -8,6 +8,7 @@ import CopyButton from "@/components/CopyButton";
 import { HighlightedCss, HighlightedHtml } from "@/components/SyntaxHighlight";
 import Avatar from "@/components/Avatar";
 import LikeButton from "@/components/LikeButton";
+import FavoriteButton from "@/components/FavoriteButton";
 import AddCommentForm from "@/components/AddCommentForm";
 import DeleteCommentButton from "@/components/DeleteCommentButton";
 
@@ -39,10 +40,18 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
       ).data
     : null;
 
-  const [{ data: viewerLike }, { data: comments }] = await Promise.all([
+  const [{ data: viewerLike }, { data: viewerFavorite }, { data: comments }] = await Promise.all([
     user
       ? supabase
           .from("animation_likes")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("animation_id", animation.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("animation_favorites")
           .select("id")
           .eq("user_id", user.id)
           .eq("animation_id", animation.id)
@@ -92,6 +101,11 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
             slug={animation.slug}
             initiallyLiked={!!viewerLike}
             initialCount={animation.like_count}
+            signedIn={!!user}
+          />
+          <FavoriteButton
+            slug={animation.slug}
+            initiallyFavorited={!!viewerFavorite}
             signedIn={!!user}
           />
           {user?.id === animation.author_id && (

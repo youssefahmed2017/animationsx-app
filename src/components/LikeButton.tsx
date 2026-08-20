@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ThumbsUpIcon } from "@/components/icons";
 
 export default function LikeButton({
   slug,
@@ -50,11 +51,11 @@ export default function LikeButton({
       disabled={pending}
       className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${
         liked
-          ? "border-pink-800 bg-pink-950 text-pink-300"
+          ? "border-blue-800 bg-blue-950 text-blue-300"
           : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
       }`}
     >
-      <span aria-hidden="true">{liked ? "♥" : "♡"}</span>
+      <ThumbsUpIcon filled={liked} />
       {count}
     </button>
   );
