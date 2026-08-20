@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { writeAnimationFile } from "@/lib/github";
 import { validateCss, slugify } from "@/lib/validateCss";
+import { MAX_JS_LENGTH } from "@/lib/jsGeneratorLimits";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -14,15 +15,17 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { title, description, cssContent, category, useCase, tags, forkedFromSlug } = body as {
-    title?: string;
-    description?: string;
-    cssContent?: string;
-    category?: string;
-    useCase?: string;
-    tags?: string[];
-    forkedFromSlug?: string;
-  };
+  const { title, description, cssContent, jsSource, category, useCase, tags, forkedFromSlug } =
+    body as {
+      title?: string;
+      description?: string;
+      cssContent?: string;
+      jsSource?: string;
+      category?: string;
+      useCase?: string;
+      tags?: string[];
+      forkedFromSlug?: string;
+    };
 
   if (!title?.trim() || !cssContent?.trim() || !category?.trim()) {
     return NextResponse.json(
@@ -34,6 +37,12 @@ export async function POST(request: NextRequest) {
   const check = validateCss(cssContent);
   if (!check.valid) {
     return NextResponse.json({ error: check.reason }, { status: 422 });
+  }
+  if (jsSource && jsSource.length > MAX_JS_LENGTH) {
+    return NextResponse.json(
+      { error: `jsSource is too large (max ${MAX_JS_LENGTH.toLocaleString()} characters).` },
+      { status: 400 }
+    );
   }
 
   const service = createServiceClient();
@@ -77,6 +86,7 @@ export async function POST(request: NextRequest) {
       title: title.trim(),
       description: description?.trim() || null,
       css_content: cssContent,
+      js_source: jsSource?.trim() || null,
       category: category.trim(),
       use_case: useCase?.trim() || null,
       tags: (tags ?? []).map((t) => t.trim()).filter(Boolean),

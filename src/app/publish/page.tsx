@@ -21,6 +21,7 @@ const EMPTY_DATA: AnimationFormInitialData = {
   useCase: "",
   tags: [],
   cssContent: DEFAULT_CSS,
+  jsSource: "",
 };
 
 export default function PublishPage() {
@@ -51,7 +52,7 @@ function PublishGate() {
     if (!forkSlug) return;
     supabase
       .from("animations")
-      .select("title, description, category, use_case, tags, css_content")
+      .select("title, description, category, use_case, tags, css_content, js_source")
       .eq("slug", forkSlug)
       .maybeSingle()
       .then(({ data }) => {
@@ -63,6 +64,7 @@ function PublishGate() {
           useCase: data.use_case ?? "",
           tags: data.tags ?? [],
           cssContent: data.css_content,
+          jsSource: data.js_source ?? "",
         });
       });
   }, [forkSlug, supabase]);

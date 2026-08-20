@@ -18,6 +18,7 @@ create table if not exists public.animations (
   title text not null,
   description text,
   css_content text not null,
+  js_source text,
   category text not null,
   use_case text,
   tags text[] not null default '{}',

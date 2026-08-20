@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { deleteAnimationFile, writeAnimationFile } from "@/lib/github";
 import { validateCss } from "@/lib/validateCss";
+import { MAX_JS_LENGTH } from "@/lib/jsGeneratorLimits";
 
 export async function PATCH(
   request: NextRequest,
@@ -35,10 +36,11 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { title, description, cssContent, category, useCase, tags } = body as {
+  const { title, description, cssContent, jsSource, category, useCase, tags } = body as {
     title?: string;
     description?: string;
     cssContent?: string;
+    jsSource?: string;
     category?: string;
     useCase?: string;
     tags?: string[];
@@ -54,6 +56,12 @@ export async function PATCH(
   const check = validateCss(cssContent);
   if (!check.valid) {
     return NextResponse.json({ error: check.reason }, { status: 422 });
+  }
+  if (jsSource && jsSource.length > MAX_JS_LENGTH) {
+    return NextResponse.json(
+      { error: `jsSource is too large (max ${MAX_JS_LENGTH.toLocaleString()} characters).` },
+      { status: 400 }
+    );
   }
 
   try {
@@ -71,6 +79,7 @@ export async function PATCH(
       title: title.trim(),
       description: description?.trim() || null,
       css_content: cssContent,
+      js_source: jsSource?.trim() || null,
       category: category.trim(),
       use_case: useCase?.trim() || null,
       tags: (tags ?? []).map((t) => t.trim()).filter(Boolean),

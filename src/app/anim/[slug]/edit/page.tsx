@@ -16,7 +16,7 @@ export default async function EditAnimationPage({ params }: PageProps<"/anim/[sl
 
   const { data: animation } = await supabase
     .from("animations")
-    .select("author_id, title, description, category, use_case, tags, css_content")
+    .select("author_id, title, description, category, use_case, tags, css_content, js_source")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -36,6 +36,7 @@ export default async function EditAnimationPage({ params }: PageProps<"/anim/[sl
         useCase: animation.use_case ?? "",
         tags: animation.tags ?? [],
         cssContent: animation.css_content,
+        jsSource: animation.js_source ?? "",
       }}
     />
   );

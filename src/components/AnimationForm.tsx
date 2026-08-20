@@ -6,6 +6,7 @@ import Link from "next/link";
 import AnimationPreview from "@/components/AnimationPreview";
 import TagInput from "@/components/TagInput";
 import { MAX_CSS_LENGTH } from "@/lib/validateCss";
+import { MAX_JS_LENGTH } from "@/lib/jsGeneratorLimits";
 import { useDebounced } from "@/lib/useDebounced";
 import { useToast } from "@/components/Toast";
 
@@ -16,6 +17,7 @@ export type AnimationFormInitialData = {
   useCase: string;
   tags: string[];
   cssContent: string;
+  jsSource: string;
 };
 
 type Props =
@@ -44,8 +46,32 @@ export default function AnimationForm(props: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [showGenerator, setShowGenerator] = useState(!!initialData.jsSource);
+  const [jsSource, setJsSource] = useState(initialData.jsSource);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
+
   // Debounced so the sandboxed preview iframe isn't torn down/rebuilt on every keystroke.
   const previewCss = useDebounced(cssContent, 250);
+
+  async function handleGenerate() {
+    setGenerating(true);
+    setGenerateError("");
+
+    const res = await fetch("/api/generate-css", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ js: jsSource }),
+    });
+    const json = await res.json();
+    setGenerating(false);
+
+    if (!res.ok) {
+      setGenerateError(json.error ?? "Something went wrong.");
+      return;
+    }
+    setCssContent(json.css);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +84,7 @@ export default function AnimationForm(props: Props) {
       category,
       useCase,
       cssContent,
+      jsSource: showGenerator ? jsSource : "",
       tags,
       ...(props.mode === "create" && props.forkedFromSlug
         ? { forkedFromSlug: props.forkedFromSlug }
@@ -150,6 +177,57 @@ export default function AnimationForm(props: Props) {
             </label>
             <TagInput tags={tags} onChange={setTags} placeholder="fade, hover, subtle…" />
           </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowGenerator((v) => !v)}
+              className="text-xs text-neutral-400 hover:text-neutral-200 underline"
+            >
+              {showGenerator ? "Hide JS generator" : "Generate CSS from JS instead…"}
+            </button>
+          </div>
+
+          {showGenerator && (
+            <div className="rounded-md border border-neutral-800 bg-neutral-950 p-3 space-y-2">
+              <div className="flex items-baseline justify-between">
+                <label className="block text-sm text-neutral-400">
+                  JS generator{" "}
+                  <span className="text-neutral-600">
+                    (last expression must be the CSS string)
+                  </span>
+                </label>
+                <span
+                  className={`text-xs ${
+                    jsSource.length > MAX_JS_LENGTH ? "text-red-400" : "text-neutral-500"
+                  }`}
+                >
+                  {jsSource.length.toLocaleString()} / {MAX_JS_LENGTH.toLocaleString()}
+                </span>
+              </div>
+              <textarea
+                value={jsSource}
+                onChange={(e) => setJsSource(e.target.value)}
+                rows={8}
+                spellCheck={false}
+                placeholder={
+                  'let css = "";\nfor (let i = 0; i <= 10; i++) {\n  css += `${i * 10}% { opacity: ${i / 10}; }\\n`;\n}\n`@keyframes fade { ${css} }`'
+                }
+                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm font-mono outline-none focus:border-neutral-500"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={generating || !jsSource.trim() || jsSource.length > MAX_JS_LENGTH}
+                  className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:border-neutral-500 disabled:opacity-50"
+                >
+                  {generating ? "Generating…" : "Generate CSS"}
+                </button>
+                {generateError && <p className="text-sm text-red-400">{generateError}</p>}
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="flex items-baseline justify-between mb-1">
               <label className="block text-sm text-neutral-400">CSS *</label>
