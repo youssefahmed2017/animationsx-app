@@ -155,7 +155,7 @@ export default async function HomePage() {
           </div>
         )}
         <Link
-          href="/"
+          href="/browse"
           className="inline-block mt-4 text-sm underline text-neutral-400 hover:text-neutral-200"
         >
           Browse all →

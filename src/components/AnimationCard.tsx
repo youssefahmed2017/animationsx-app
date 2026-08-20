@@ -46,7 +46,7 @@ export default function AnimationCard({
 
       <div className="flex flex-wrap items-center gap-1.5 mt-3 text-xs text-neutral-500">
         <Link
-          href={`/?category=${encodeURIComponent(animation.category)}`}
+          href={`/browse?category=${encodeURIComponent(animation.category)}`}
           className="rounded bg-neutral-800 px-1.5 py-0.5 hover:bg-neutral-700 hover:text-neutral-200"
         >
           {animation.category}
@@ -54,7 +54,7 @@ export default function AnimationCard({
         {animation.tags?.map((t) => (
           <Link
             key={t}
-            href={`/?tags=${encodeURIComponent(t)}`}
+            href={`/browse?tags=${encodeURIComponent(t)}`}
             className="rounded bg-neutral-800 px-1.5 py-0.5 hover:bg-neutral-700 hover:text-neutral-200"
           >
             #{t}

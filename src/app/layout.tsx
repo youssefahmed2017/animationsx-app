@@ -34,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 AnimationsX
               </Link>
               <nav className="flex items-center gap-4 text-sm">
-                <Link href="/" className="hover:text-white text-neutral-300">
+                <Link href="/browse" className="hover:text-white text-neutral-300">
                   Browse
                 </Link>
                 <Link href="/publish" className="hover:text-white text-neutral-300">

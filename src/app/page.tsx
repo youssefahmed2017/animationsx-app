@@ -1,138 +1,98 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import AnimationCard, { type AnimationCardData } from "@/components/AnimationCard";
-import Pagination from "@/components/Pagination";
-import TagFilterInput from "@/components/TagFilterInput";
+import AnimationPreview from "@/components/AnimationPreview";
 
-type SearchParams = { q?: string; category?: string; tags?: string; sort?: string; page?: string };
-
-const PAGE_SIZE = 24;
-
-export default async function BrowsePage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  const { q, category, tags, sort, page: pageParam } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
+export default async function LandingPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: categoryRows } = await supabase
-    .from("animations")
-    .select("category")
-    .order("category");
-  const categories = Array.from(new Set((categoryRows ?? []).map((r) => r.category)));
-
-  const { data: tagRows } = await supabase.from("animations").select("tags");
-  const allTags = Array.from(new Set((tagRows ?? []).flatMap((r) => r.tags))).sort();
-
-  const tagList = tags
-    ? tags.split(",").map((t) => t.trim()).filter(Boolean)
-    : [];
-
-  let query = supabase
-    .from("animations")
-    .select(
-      "id, slug, title, description, category, tags, view_count, fork_count, like_count, created_at, author_id, profiles(username, avatar_url)",
-      { count: "exact" }
-    );
-
-  if (q) {
-    // .or() treats "," as a condition separator and wraps values in parens,
-    // so strip characters that would break out of the filter syntax.
-    const safeQ = q.replace(/[,()]/g, "").trim();
-    if (safeQ) query = query.or(`title.ilike.%${safeQ}%,description.ilike.%${safeQ}%`);
+  if (user) {
+    redirect("/home");
   }
-  if (category) query = query.eq("category", category);
-  if (tagList.length > 0) query = query.contains("tags", tagList);
-  query = sort === "popular" ? query.order("view_count", { ascending: false }) : query.order("created_at", { ascending: false });
 
-  const from = (page - 1) * PAGE_SIZE;
-  const { data: animations, error, count } = await query.range(from, from + PAGE_SIZE - 1);
-  const totalPages = count ? Math.max(1, Math.ceil(count / PAGE_SIZE)) : 1;
-
-  const cards: AnimationCardData[] = (animations ?? []).map((a) => ({
-    ...a,
-    author: Array.isArray(a.profiles) ? a.profiles[0] : a.profiles,
-  }));
+  const { data: featured } = await supabase
+    .from("animations")
+    .select("slug, title, css_content")
+    .order("like_count", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="flex items-end justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Browse animations</h1>
-          <p className="text-neutral-400 text-sm mt-1">CSS-only, copy-paste ready.</p>
-        </div>
-      </div>
-
-      <form className="flex flex-wrap gap-2 mb-6" action="/">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q}
-          placeholder="Search title or description…"
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
-        />
-        <select
-          name="category"
-          defaultValue={category ?? ""}
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <TagFilterInput
-          name="tags"
-          initialTags={tagList}
-          suggestions={allTags}
-          placeholder="Tags…"
-        />
-        <select
-          name="sort"
-          defaultValue={sort ?? "newest"}
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
-        >
-          <option value="newest">Newest</option>
-          <option value="popular">Popular</option>
-        </select>
-        <button className="rounded-md bg-white text-neutral-900 font-medium px-3 py-1.5 text-sm">
-          Filter
-        </button>
-      </form>
-
-      {error && <p className="text-sm text-red-400">Couldn&apos;t load animations: {error.message}</p>}
-
-      {!error && cards.length === 0 && (
-        <p className="text-neutral-500 text-sm">
-          {q || category || tagList.length > 0 ? (
-            "No animations match those filters."
-          ) : (
-            <>
-              Nothing published yet.{" "}
-              <Link href="/publish" className="underline">
-                Be the first.
-              </Link>
-            </>
-          )}
+    <div>
+      <section className="mx-auto max-w-3xl px-4 pt-20 pb-12 text-center">
+        <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
+          CSS animations, ready to paste.
+        </h1>
+        <p className="mt-4 text-lg text-neutral-400 max-w-xl mx-auto">
+          A community registry of copy-paste-ready CSS animations. Publish your own, browse what
+          others made, fork and remix anything — no JavaScript, no build step.
         </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/signup"
+            className="rounded-md bg-white text-neutral-900 font-medium px-5 py-2.5 text-sm hover:bg-neutral-200"
+          >
+            Get started — it&apos;s free
+          </Link>
+          <Link
+            href="/browse"
+            className="rounded-md border border-neutral-700 px-5 py-2.5 text-sm hover:border-neutral-500"
+          >
+            Browse animations
+          </Link>
+        </div>
+        <p className="mt-4 text-sm text-neutral-500">
+          Already have an account?{" "}
+          <Link href="/login" className="underline">
+            Sign in
+          </Link>
+        </p>
+      </section>
+
+      {featured && (
+        <section className="mx-auto max-w-2xl px-4 pb-16">
+          <p className="text-center text-xs uppercase tracking-wide text-neutral-500 mb-3">
+            Live on AnimationsX right now
+          </p>
+          <AnimationPreview css={featured.css_content} />
+          <p className="text-center text-sm text-neutral-500 mt-3">
+            <Link href={`/anim/${featured.slug}`} className="underline">
+              {featured.title} →
+            </Link>
+          </p>
+        </section>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((a) => (
-          <AnimationCard key={a.id} animation={a} />
-        ))}
-      </div>
-
-      <Pagination
-        basePath="/"
-        params={{ q, category, tags, sort }}
-        page={page}
-        totalPages={totalPages}
-      />
+      <section className="border-t border-neutral-800">
+        <div className="mx-auto max-w-5xl px-4 py-16 grid grid-cols-1 sm:grid-cols-3 gap-10">
+          <div>
+            <h2 className="font-medium mb-1.5">Publish</h2>
+            <p className="text-sm text-neutral-400">
+              Share pure-CSS animations with the world. Every publish gets a CDN-hosted
+              stylesheet you can drop straight into a{" "}
+              <code className="text-neutral-300">&lt;link&gt;</code> tag.
+            </p>
+          </div>
+          <div>
+            <h2 className="font-medium mb-1.5">Fork &amp; remix</h2>
+            <p className="text-sm text-neutral-400">
+              Found something close but not quite right? Fork it, tweak the CSS, and publish your
+              own version — with a diff against the original built in.
+            </p>
+          </div>
+          <div>
+            <h2 className="font-medium mb-1.5">Like, comment, follow</h2>
+            <p className="text-sm text-neutral-400">
+              Favorite the ones you&apos;ll reuse later, comment on what you love, and follow
+              creators whose work you want to see more of.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
