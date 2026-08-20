@@ -44,11 +44,19 @@ export default function NavAuth() {
   }
 
   return (
-    <button
-      onClick={() => supabase.auth.signOut()}
-      className="hover:text-white text-neutral-300"
-    >
-      Sign out
-    </button>
+    <>
+      <Link href="/home" className="hover:text-white text-neutral-300">
+        Home
+      </Link>
+      <Link href="/account" className="hover:text-white text-neutral-300">
+        Account
+      </Link>
+      <button
+        onClick={() => supabase.auth.signOut()}
+        className="hover:text-white text-neutral-300"
+      >
+        Sign out
+      </button>
+    </>
   );
 }

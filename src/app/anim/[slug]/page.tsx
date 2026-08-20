@@ -6,6 +6,10 @@ import CssDiff from "@/components/CssDiff";
 import DeleteAnimationButton from "@/components/DeleteAnimationButton";
 import CopyButton from "@/components/CopyButton";
 import { HighlightedCss, HighlightedHtml } from "@/components/SyntaxHighlight";
+import Avatar from "@/components/Avatar";
+import LikeButton from "@/components/LikeButton";
+import AddCommentForm from "@/components/AddCommentForm";
+import DeleteCommentButton from "@/components/DeleteCommentButton";
 
 export default async function AnimationPage({ params }: PageProps<"/anim/[slug]">) {
   const { slug } = await params;
@@ -18,7 +22,7 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
   const { data: animation } = await supabase
     .from("animations")
     .select(
-      "id, slug, title, description, css_content, category, use_case, tags, jsdelivr_url, view_count, fork_count, forked_from_id, author_id, created_at, profiles(username)"
+      "id, slug, title, description, css_content, category, use_case, tags, jsdelivr_url, view_count, fork_count, like_count, forked_from_id, author_id, created_at, profiles(username, avatar_url)"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -35,6 +39,22 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
       ).data
     : null;
 
+  const [{ data: viewerLike }, { data: comments }] = await Promise.all([
+    user
+      ? supabase
+          .from("animation_likes")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("animation_id", animation.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("comments")
+      .select("id, body, created_at, author_id, profiles(username, avatar_url)")
+      .eq("animation_id", animation.id)
+      .order("created_at", { ascending: true }),
+  ]);
+
   // Fire-and-forget view count increment via the service client (bypasses RLS; no client-facing write policy exists).
   createServiceClient()
     .rpc("increment_view_count", { animation_slug: slug })
@@ -50,7 +70,13 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
         <div>
           <h1 className="text-2xl font-semibold">{animation.title}</h1>
           {author?.username && (
-            <p className="text-neutral-500 text-sm mt-1">by {author.username}</p>
+            <Link
+              href={`/u/${author.username}`}
+              className="flex items-center gap-1.5 mt-1 text-sm text-neutral-500 hover:text-neutral-300"
+            >
+              <Avatar username={author.username} avatarUrl={author.avatar_url} size={20} />
+              Created by <span className="underline">{author.username}</span>
+            </Link>
           )}
           {forkedFrom && (
             <p className="text-neutral-500 text-sm mt-1">
@@ -62,6 +88,12 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <LikeButton
+            slug={animation.slug}
+            initiallyLiked={!!viewerLike}
+            initialCount={animation.like_count}
+            signedIn={!!user}
+          />
           {user?.id === animation.author_id && (
             <>
               <Link
@@ -88,12 +120,21 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
 
       <AnimationPreview css={animation.css_content} />
 
-      <div className="flex flex-wrap items-center gap-2 mt-4 text-xs text-neutral-500">
-        <span className="rounded bg-neutral-800 px-1.5 py-0.5">{animation.category}</span>
+      <div className="flex flex-wrap items-center gap-1.5 mt-4 text-xs text-neutral-500">
+        <Link
+          href={`/?category=${encodeURIComponent(animation.category)}`}
+          className="rounded bg-neutral-800 px-1.5 py-0.5 hover:bg-neutral-700 hover:text-neutral-200"
+        >
+          {animation.category}
+        </Link>
         {animation.tags?.map((t: string) => (
-          <span key={t} className="rounded bg-neutral-800 px-1.5 py-0.5">
+          <Link
+            key={t}
+            href={`/?tags=${encodeURIComponent(t)}`}
+            className="rounded bg-neutral-800 px-1.5 py-0.5 hover:bg-neutral-700 hover:text-neutral-200"
+          >
             #{t}
-          </span>
+          </Link>
         ))}
         <span>{animation.view_count} views</span>
         <span>{animation.fork_count} forks</span>
@@ -126,6 +167,57 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
           originalTitle={forkedFrom.title}
         />
       )}
+
+      <div className="mt-10 border-t border-neutral-800 pt-6">
+        <h2 className="text-sm font-medium text-neutral-300 mb-4">
+          Comments {comments && comments.length > 0 ? `(${comments.length})` : ""}
+        </h2>
+
+        {user ? (
+          <AddCommentForm slug={animation.slug} />
+        ) : (
+          <p className="text-sm text-neutral-500">
+            <Link href={`/login?next=/anim/${animation.slug}`} className="underline">
+              Sign in
+            </Link>{" "}
+            to leave a comment.
+          </p>
+        )}
+
+        <ul className="mt-6 space-y-4">
+          {(comments ?? []).map((c) => {
+            const commentAuthor = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
+            return (
+              <li key={c.id} className="flex gap-3">
+                <Avatar
+                  username={commentAuthor?.username ?? "?"}
+                  avatarUrl={commentAuthor?.avatar_url}
+                  size={28}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {commentAuthor?.username && (
+                      <Link href={`/u/${commentAuthor.username}`} className="text-sm font-medium hover:underline">
+                        {commentAuthor.username}
+                      </Link>
+                    )}
+                    <span className="text-xs text-neutral-500">
+                      {new Date(c.created_at).toLocaleDateString()}
+                    </span>
+                    {user?.id === c.author_id && <DeleteCommentButton id={c.id} />}
+                  </div>
+                  <p className="text-sm text-neutral-300 mt-0.5 whitespace-pre-wrap break-words">
+                    {c.body}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+          {comments && comments.length === 0 && (
+            <li className="text-sm text-neutral-500">No comments yet.</li>
+          )}
+        </ul>
+      </div>
     </div>
   );
 }

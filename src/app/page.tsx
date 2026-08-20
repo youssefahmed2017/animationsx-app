@@ -1,25 +1,60 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import AnimationCard, { type AnimationCardData } from "@/components/AnimationCard";
+import Pagination from "@/components/Pagination";
+import TagFilterInput from "@/components/TagFilterInput";
 
-type SearchParams = { q?: string; category?: string; sort?: string };
+type SearchParams = { q?: string; category?: string; tags?: string; sort?: string; page?: string };
+
+const PAGE_SIZE = 24;
 
 export default async function BrowsePage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { q, category, sort } = await searchParams;
+  const { q, category, tags, sort, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
   const supabase = await createClient();
+
+  const { data: categoryRows } = await supabase
+    .from("animations")
+    .select("category")
+    .order("category");
+  const categories = Array.from(new Set((categoryRows ?? []).map((r) => r.category)));
+
+  const { data: tagRows } = await supabase.from("animations").select("tags");
+  const allTags = Array.from(new Set((tagRows ?? []).flatMap((r) => r.tags))).sort();
+
+  const tagList = tags
+    ? tags.split(",").map((t) => t.trim()).filter(Boolean)
+    : [];
 
   let query = supabase
     .from("animations")
-    .select("id, slug, title, description, category, tags, view_count, fork_count, created_at");
+    .select(
+      "id, slug, title, description, category, tags, view_count, fork_count, like_count, created_at, author_id, profiles(username, avatar_url)",
+      { count: "exact" }
+    );
 
-  if (q) query = query.ilike("title", `%${q}%`);
+  if (q) {
+    // .or() treats "," as a condition separator and wraps values in parens,
+    // so strip characters that would break out of the filter syntax.
+    const safeQ = q.replace(/[,()]/g, "").trim();
+    if (safeQ) query = query.or(`title.ilike.%${safeQ}%,description.ilike.%${safeQ}%`);
+  }
   if (category) query = query.eq("category", category);
+  if (tagList.length > 0) query = query.contains("tags", tagList);
   query = sort === "popular" ? query.order("view_count", { ascending: false }) : query.order("created_at", { ascending: false });
 
-  const { data: animations, error } = await query.limit(60);
+  const from = (page - 1) * PAGE_SIZE;
+  const { data: animations, error, count } = await query.range(from, from + PAGE_SIZE - 1);
+  const totalPages = count ? Math.max(1, Math.ceil(count / PAGE_SIZE)) : 1;
+
+  const cards: AnimationCardData[] = (animations ?? []).map((a) => ({
+    ...a,
+    author: Array.isArray(a.profiles) ? a.profiles[0] : a.profiles,
+  }));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -35,15 +70,26 @@ export default async function BrowsePage({
           type="text"
           name="q"
           defaultValue={q}
-          placeholder="Search by title…"
+          placeholder="Search title or description…"
           className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
         />
-        <input
-          type="text"
+        <select
           name="category"
-          defaultValue={category}
-          placeholder="Category…"
+          defaultValue={category ?? ""}
           className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"
+        >
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <TagFilterInput
+          name="tags"
+          initialTags={tagList}
+          suggestions={allTags}
+          placeholder="Tags…"
         />
         <select
           name="sort"
@@ -60,34 +106,33 @@ export default async function BrowsePage({
 
       {error && <p className="text-sm text-red-400">Couldn&apos;t load animations: {error.message}</p>}
 
-      {!error && animations?.length === 0 && (
+      {!error && cards.length === 0 && (
         <p className="text-neutral-500 text-sm">
-          Nothing published yet.{" "}
-          <Link href="/publish" className="underline">
-            Be the first.
-          </Link>
+          {q || category || tagList.length > 0 ? (
+            "No animations match those filters."
+          ) : (
+            <>
+              Nothing published yet.{" "}
+              <Link href="/publish" className="underline">
+                Be the first.
+              </Link>
+            </>
+          )}
         </p>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {animations?.map((a) => (
-          <Link
-            key={a.id}
-            href={`/anim/${a.slug}`}
-            className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:border-neutral-600 transition-colors"
-          >
-            <h2 className="font-medium">{a.title}</h2>
-            {a.description && (
-              <p className="text-neutral-400 text-sm mt-1 line-clamp-2">{a.description}</p>
-            )}
-            <div className="flex items-center gap-2 mt-3 text-xs text-neutral-500">
-              <span className="rounded bg-neutral-800 px-1.5 py-0.5">{a.category}</span>
-              <span>{a.view_count} views</span>
-              <span>{a.fork_count} forks</span>
-            </div>
-          </Link>
+        {cards.map((a) => (
+          <AnimationCard key={a.id} animation={a} />
         ))}
       </div>
+
+      <Pagination
+        basePath="/"
+        params={{ q, category, tags, sort }}
+        page={page}
+        totalPages={totalPages}
+      />
     </div>
   );
 }

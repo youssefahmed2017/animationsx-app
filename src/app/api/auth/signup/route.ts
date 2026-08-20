@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-
-const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{3,24}$/;
+import { isValidUsername } from "@/lib/validateUsername";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!USERNAME_PATTERN.test(username)) {
+  if (!isValidUsername(username)) {
     return NextResponse.json(
       { error: "Username must be 3-24 characters: letters, numbers, _ or -." },
       { status: 400 }

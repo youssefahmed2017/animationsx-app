@@ -26,15 +26,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px 10px 48px;
+  padding: 10px 20px;
   font-family: inherit;
   font-weight: 700;
   color: #ffffff;
   background-color: #2f39ba;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='6' fill='white'/%3E%3Cg transform='translate(8,8) scale(0.024)'%3E%3Cpath fill='%23557ebf' d='M975.28 510.79c0-35.14-3.15-68.92-9.01-101.36H499.59V601.1h266.67c-11.49 61.94-46.39 114.42-98.87 149.55v124.33h160.14c93.7-86.26 147.75-213.3 147.75-364.2Z'/%3E%3Cpath fill='%2336a852' d='M499.6 995.03c133.79 0 245.95-44.37 327.93-120.05L667.39 750.65c-44.37 29.73-101.13 47.3-167.79 47.3-129.06 0-238.29-87.16-277.26-204.28H56.79v128.38c81.54 161.94 249.11 272.98 442.8 272.98Z'/%3E%3Cpath fill='%23f9bc15' d='M222.34 593.67c-9.91-29.73-15.54-61.49-15.54-94.15s5.63-64.42 15.54-94.15V276.99H56.79c-33.55 66.9-52.7 142.58-52.7 222.54s19.15 155.63 52.7 222.53l165.54-128.38Z'/%3E%3Cpath fill='%23e94435' d='M499.6 201.1c72.75 0 138.06 25 189.42 74.1l142.12-142.12C745.32 53.12 633.15 4.02 499.6 4.02 305.9 4.02 138.33 115.06 56.8 277l165.54 128.38C261.31 288.26 370.54 201.1 499.6 201.1Z'/%3E%3C/g%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 12px center;
-  background-size: 24px 24px;
   border: 1px solid #2f39ba;
   border-radius: 6px;
   cursor: pointer;

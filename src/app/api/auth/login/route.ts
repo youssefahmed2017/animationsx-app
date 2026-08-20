@@ -61,6 +61,18 @@ export async function POST(request: NextRequest) {
     return okResponse;
   }
 
+  // Local dev: skip the emailed OTP challenge so `next dev` testing doesn't
+  // burn Supabase's (low, shared) email rate limit. `next build`/`next start`
+  // — including Vercel's production and preview builds — set NODE_ENV to
+  // "production", so this never applies to a deployed app.
+  if (process.env.NODE_ENV !== "production") {
+    await service.from("trusted_devices").upsert(
+      { user_id: profile.id, device_id: actualDeviceId, last_ip: getClientIp(request) },
+      { onConflict: "user_id,device_id" }
+    );
+    return okResponse;
+  }
+
   // Unrecognized device: throw away the session we just created and require
   // an emailed code before letting this device in.
   await supabase.auth.signOut();
