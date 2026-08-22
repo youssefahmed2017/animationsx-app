@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { deleteAnimationFile } from "@/lib/github";
 import { isValidUsername } from "@/lib/validateUsername";
 import { MAX_BIO_LENGTH } from "@/lib/profileLimits";
+import { deleteUserAccount } from "@/lib/userDeletion";
 
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient();
@@ -109,24 +109,9 @@ export async function DELETE() {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 
-  const service = createServiceClient();
-
-  const { data: ownedAnimations } = await service
-    .from("animations")
-    .select("slug")
-    .eq("author_id", user.id);
-
-  for (const animation of ownedAnimations ?? []) {
-    try {
-      await deleteAnimationFile(animation.slug);
-    } catch {
-      // Best-effort: an orphaned registry file isn't worth blocking account deletion over.
-    }
-  }
-
-  const { error } = await service.auth.admin.deleteUser(user.id);
+  const { error } = await deleteUserAccount(user.id);
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

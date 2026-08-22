@@ -43,3 +43,6 @@ next-env.d.ts
 .vercel
 .env.local
 .env*
+
+# admin panel
+src/app/api/admin
