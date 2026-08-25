@@ -45,7 +45,7 @@ body {
 }
 .like-heart-solid {
   opacity: 0;
-  fill: #d7000f;
+  fill: #3b82f6;
 }
 .like-heart-checkbox:checked ~ .like-heart-label .like-heart-outline {
   opacity: 0;

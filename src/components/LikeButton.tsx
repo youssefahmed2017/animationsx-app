@@ -47,7 +47,7 @@ export default function LikeButton({
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-        liked ? "border-red-900/60 text-red-300" : "border-neutral-700 text-neutral-300"
+        liked ? "border-blue-900/60 text-blue-300" : "border-neutral-700 text-neutral-300"
       }`}
     >
       <AnimatedHeart checked={liked} onToggle={toggle} disabled={pending} size={18} />
