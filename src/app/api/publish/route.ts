@@ -47,6 +47,23 @@ export async function POST(request: NextRequest) {
 
   const service = createServiceClient();
 
+  const RATE_LIMIT_WINDOW_MINUTES = 10;
+  const RATE_LIMIT_MAX_PUBLISHES = 5;
+  const { count: recentPublishCount } = await service
+    .from("animations")
+    .select("*", { count: "exact", head: true })
+    .eq("author_id", user.id)
+    .gte("created_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60_000).toISOString());
+
+  if ((recentPublishCount ?? 0) >= RATE_LIMIT_MAX_PUBLISHES) {
+    return NextResponse.json(
+      {
+        error: `You're publishing too fast — max ${RATE_LIMIT_MAX_PUBLISHES} animations per ${RATE_LIMIT_WINDOW_MINUTES} minutes. Try again shortly.`,
+      },
+      { status: 429 }
+    );
+  }
+
   let forkedFromId: string | null = null;
   if (forkedFromSlug) {
     const { data: original } = await service

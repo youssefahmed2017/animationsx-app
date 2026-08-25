@@ -44,5 +44,3 @@ next-env.d.ts
 .env.local
 .env*
 
-# admin panel
-src/app/api/admin
