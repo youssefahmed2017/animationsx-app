@@ -34,7 +34,7 @@ export default async function LandingPage() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/signup"
-            className="rounded-md bg-white text-neutral-900 font-medium px-5 py-2.5 text-sm hover:bg-neutral-200"
+            className="rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 px-5 py-2.5 text-sm hover:bg-neutral-200"
           >
             Get started — it&apos;s free
           </Link>

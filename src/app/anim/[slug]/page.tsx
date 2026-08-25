@@ -148,7 +148,7 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
           )}
           <Link
             href={`/publish?fork=${animation.slug}`}
-            className="shrink-0 rounded-md bg-white text-neutral-900 font-medium px-3 py-1.5 text-sm hover:bg-neutral-200"
+            className="shrink-0 rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 px-3 py-1.5 text-sm hover:bg-neutral-200"
           >
             Fork
           </Link>

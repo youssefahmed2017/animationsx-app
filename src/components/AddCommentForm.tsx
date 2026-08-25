@@ -47,7 +47,7 @@ export default function AddCommentForm({ slug }: { slug: string }) {
         <button
           type="submit"
           disabled={submitting || !body.trim()}
-          className="rounded-md bg-white text-neutral-900 font-medium px-3 py-1.5 text-sm disabled:opacity-50"
+          className="rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 px-3 py-1.5 text-sm disabled:opacity-50"
         >
           {submitting ? "Posting…" : "Comment"}
         </button>

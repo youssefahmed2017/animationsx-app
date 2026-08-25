@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import NavAuth from "@/components/NavAuth";
 import { ToastProvider } from "@/components/Toast";
+import RouteProgressBar from "@/components/RouteProgressBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +29,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
+        <Suspense fallback={null}>
+          <RouteProgressBar />
+        </Suspense>
         <ToastProvider>
           <header className="border-b border-neutral-800">
             <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-3">

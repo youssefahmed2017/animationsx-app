@@ -49,13 +49,13 @@ export default function LikeButton({
       type="button"
       onClick={toggle}
       disabled={pending}
-      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${
+      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-all duration-150 active:scale-90 disabled:opacity-50 disabled:active:scale-100 ${
         liked
           ? "border-blue-800 bg-blue-950 text-blue-300"
-          : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+          : "border-neutral-700 text-neutral-300 hover:border-neutral-500 hover:scale-105"
       }`}
     >
-      <ThumbsUpIcon filled={liked} />
+      <ThumbsUpIcon filled={liked} className={liked ? "scale-110 transition-transform" : "transition-transform"} />
       {count}
     </button>
   );

@@ -257,7 +257,7 @@ export default function AnimationForm(props: Props) {
             <button
               type="submit"
               disabled={submitting || cssOverLimit}
-              className="flex-1 rounded-md bg-white text-neutral-900 font-medium py-2 text-sm disabled:opacity-50"
+              className="flex-1 rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 py-2 text-sm disabled:opacity-50"
             >
               {submitting ? submittingLabel : submitLabel}
             </button>

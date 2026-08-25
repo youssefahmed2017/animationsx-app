@@ -47,13 +47,13 @@ export default function FavoriteButton({
       disabled={pending}
       aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
       title={favorited ? "Remove from favorites" : "Add to favorites"}
-      className={`inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${
+      className={`inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm transition-all duration-150 active:scale-90 disabled:opacity-50 disabled:active:scale-100 ${
         favorited
           ? "border-amber-800 bg-amber-950 text-amber-300"
-          : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+          : "border-neutral-700 text-neutral-300 hover:border-neutral-500 hover:scale-105"
       }`}
     >
-      <BookmarkIcon filled={favorited} />
+      <BookmarkIcon filled={favorited} className={favorited ? "scale-110 transition-transform" : "transition-transform"} />
     </button>
   );
 }

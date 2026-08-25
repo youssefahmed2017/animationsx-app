@@ -22,7 +22,7 @@ export default function AnimationCard({
   showAuthor?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:border-neutral-600 transition-colors">
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 transition-all duration-150 hover:border-neutral-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30">
       <Link href={`/anim/${animation.slug}`}>
         <h2 className="font-medium">{animation.title}</h2>
         {animation.description && (

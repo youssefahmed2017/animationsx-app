@@ -113,7 +113,7 @@ export default async function HomePage() {
 
         <Link
           href="/publish"
-          className="block text-center rounded-md bg-white text-neutral-900 font-medium py-2 text-sm hover:bg-neutral-200"
+          className="block text-center rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 py-2 text-sm hover:bg-neutral-200"
         >
           New Animation
         </Link>

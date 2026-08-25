@@ -31,7 +31,7 @@ export default function OAuthButtons({ next = "/" }: { next?: string }) {
         type="button"
         onClick={signInWithGitHub}
         disabled={loading}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-neutral-700 py-2 text-sm hover:border-neutral-500 disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-neutral-700 py-2 text-sm transition-all duration-150 hover:border-neutral-500 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
       >
         <GitHubIcon />
         {loading ? "Redirecting…" : "Continue with GitHub"}

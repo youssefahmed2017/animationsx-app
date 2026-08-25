@@ -128,7 +128,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={submitting || code.length !== 6}
-            className="w-full rounded-md bg-white text-neutral-900 font-medium py-2 text-sm disabled:opacity-50"
+            className="w-full rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 py-2 text-sm disabled:opacity-50"
           >
             {submitting ? "Confirming…" : "Confirm"}
           </button>
@@ -195,7 +195,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-white text-neutral-900 font-medium py-2 text-sm disabled:opacity-50"
+          className="w-full rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 py-2 text-sm disabled:opacity-50"
         >
           {submitting ? "Signing in…" : "Sign in"}
         </button>

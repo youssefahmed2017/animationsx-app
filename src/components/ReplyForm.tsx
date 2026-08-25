@@ -57,7 +57,7 @@ export default function ReplyForm({
         <button
           type="submit"
           disabled={submitting || !body.trim()}
-          className="rounded-md bg-white text-neutral-900 font-medium px-2.5 py-1 text-xs disabled:opacity-50"
+          className="rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 px-2.5 py-1 text-xs disabled:opacity-50"
         >
           {submitting ? "Posting…" : "Reply"}
         </button>

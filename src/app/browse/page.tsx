@@ -99,7 +99,7 @@ export default async function BrowsePage({
           <option value="newest">Newest</option>
           <option value="popular">Popular</option>
         </select>
-        <button className="rounded-md bg-white text-neutral-900 font-medium px-3 py-1.5 text-sm">
+        <button className="rounded-md bg-white text-neutral-900 font-medium transition-transform active:scale-95 px-3 py-1.5 text-sm">
           Filter
         </button>
       </form>
