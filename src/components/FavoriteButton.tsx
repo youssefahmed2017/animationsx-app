@@ -34,8 +34,6 @@ export default function FavoriteButton({
 
     if (!res.ok) {
       setFavorited(!nextFavorited);
-    } else {
-      router.refresh();
     }
     setPending(false);
   }
