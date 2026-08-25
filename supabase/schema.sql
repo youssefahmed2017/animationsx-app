@@ -9,8 +9,36 @@ create table if not exists public.profiles (
   username text unique not null,
   avatar_url text,
   bio text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Ban system (see supabase/ban_system_migration.sql for the full plan).
+  -- banned_at is the authoritative predicate every request check reads;
+  -- banned_until supports time-limited bans; sessions_valid_from lets a
+  -- session be revoked (banned or not) independent of the JWT's own expiry.
+  banned_at timestamptz,
+  banned_until timestamptz,
+  ban_reason text,
+  banned_by uuid references public.profiles (id) on delete set null,
+  sessions_valid_from timestamptz not null default now(),
+  strike_count integer not null default 0,
+  signup_risk integer not null default 0
 );
+
+create index if not exists profiles_banned_at_idx on public.profiles (banned_at)
+  where banned_at is not null;
+
+-- Used by RLS insert policies below, and by the application-level guard
+-- (src/lib/auth/guard.ts, not yet built) for the equivalent check outside
+-- the database.
+create or replace function public.author_is_active(uid uuid)
+returns boolean
+language sql
+stable
+security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles where id = uid and banned_at is null
+  );
+$$;
 
 create table if not exists public.animations (
   id uuid primary key default gen_random_uuid(),
@@ -214,34 +242,34 @@ create policy "Animations are publicly readable" on public.animations
 create policy "Likes are publicly readable" on public.animation_likes
   for select using (true);
 create policy "Users can like as themselves" on public.animation_likes
-  for insert with check (auth.uid() = user_id);
+  for insert with check (auth.uid() = user_id and public.author_is_active(auth.uid()));
 create policy "Users can unlike their own like" on public.animation_likes
   for delete using (auth.uid() = user_id);
 
 create policy "Comments are publicly readable" on public.comments
   for select using (true);
 create policy "Users can comment as themselves" on public.comments
-  for insert with check (auth.uid() = author_id);
+  for insert with check (auth.uid() = author_id and public.author_is_active(auth.uid()));
 create policy "Users can delete their own comments" on public.comments
   for delete using (auth.uid() = author_id);
 
 create policy "Reactions are publicly readable" on public.comment_reactions
   for select using (true);
 create policy "Users can react as themselves" on public.comment_reactions
-  for insert with check (auth.uid() = user_id);
+  for insert with check (auth.uid() = user_id and public.author_is_active(auth.uid()));
 create policy "Users can remove their own reaction" on public.comment_reactions
   for delete using (auth.uid() = user_id);
 
 create policy "Follows are publicly readable" on public.follows
   for select using (true);
 create policy "Users can follow as themselves" on public.follows
-  for insert with check (auth.uid() = follower_id);
+  for insert with check (auth.uid() = follower_id and public.author_is_active(auth.uid()));
 create policy "Users can unfollow as themselves" on public.follows
   for delete using (auth.uid() = follower_id);
 
 create policy "Users can read their own favorites" on public.animation_favorites
   for select using (auth.uid() = user_id);
 create policy "Users can favorite as themselves" on public.animation_favorites
-  for insert with check (auth.uid() = user_id);
+  for insert with check (auth.uid() = user_id and public.author_is_active(auth.uid()));
 create policy "Users can unfavorite their own favorite" on public.animation_favorites
   for delete using (auth.uid() = user_id);
