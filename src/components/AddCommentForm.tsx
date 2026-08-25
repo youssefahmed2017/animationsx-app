@@ -43,6 +43,9 @@ export default function AddCommentForm({ slug }: { slug: string }) {
         placeholder="Add a comment…"
         className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-neutral-500"
       />
+      <p className="text-xs text-neutral-500">
+        Be constructive — if something&apos;s not working for you, say what and why instead of just calling it out.
+      </p>
       <div className="flex items-center gap-3">
         <button
           type="submit"

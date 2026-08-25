@@ -10,6 +10,7 @@ import Avatar from "@/components/Avatar";
 import LikeButton from "@/components/LikeButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import AddCommentForm from "@/components/AddCommentForm";
+import CommentingRules from "@/components/CommentingRules";
 import CommentThread from "@/components/CommentThread";
 import { buildCommentTree } from "@/lib/commentTree";
 import { ALLOWED_REACTIONS, type ReactionEmoji } from "@/lib/reactions";
@@ -209,32 +210,38 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
         />
       )}
 
-      <div className="mt-10 border-t border-neutral-800 pt-6">
-        <h2 className="text-sm font-medium text-neutral-300 mb-4">
-          Comments {comments && comments.length > 0 ? `(${comments.length})` : ""}
-        </h2>
+      <div className="mt-10 border-t border-neutral-800 pt-6 grid grid-cols-1 md:grid-cols-[1fr_240px] gap-8">
+        <div className="md:order-1">
+          <h2 className="text-sm font-medium text-neutral-300 mb-4">
+            Comments {comments && comments.length > 0 ? `(${comments.length})` : ""}
+          </h2>
 
-        {user ? (
-          <AddCommentForm slug={animation.slug} />
-        ) : (
-          <p className="text-sm text-neutral-500">
-            <Link href={`/login?next=/anim/${animation.slug}`} className="underline">
-              Sign in
-            </Link>{" "}
-            to leave a comment.
-          </p>
-        )}
-
-        <div className="mt-6">
-          <CommentThread
-            slug={animation.slug}
-            comments={commentTree}
-            currentUserId={user?.id}
-            signedIn={!!user}
-          />
-          {comments && comments.length === 0 && (
-            <p className="text-sm text-neutral-500">No comments yet.</p>
+          {user ? (
+            <AddCommentForm slug={animation.slug} />
+          ) : (
+            <p className="text-sm text-neutral-500">
+              <Link href={`/login?next=/anim/${animation.slug}`} className="underline">
+                Sign in
+              </Link>{" "}
+              to leave a comment.
+            </p>
           )}
+
+          <div className="mt-6">
+            <CommentThread
+              slug={animation.slug}
+              comments={commentTree}
+              currentUserId={user?.id}
+              signedIn={!!user}
+            />
+            {comments && comments.length === 0 && (
+              <p className="text-sm text-neutral-500">No comments yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="md:order-2">
+          <CommentingRules />
         </div>
       </div>
     </div>
