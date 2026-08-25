@@ -19,7 +19,7 @@ function CardSkeleton() {
 
 export default function BrowseLoading() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 skeleton-fade-in">
       <div className="mb-6">
         <div className="h-7 w-56 rounded bg-neutral-800 animate-pulse" />
         <div className="h-4 w-40 rounded bg-neutral-800 animate-pulse mt-2" />
