@@ -18,7 +18,7 @@ export async function POST(
   }
 
   const payload = await request.json();
-  const { body } = payload as { body?: string };
+  const { body, parentId } = payload as { body?: string; parentId?: string };
   const trimmed = body?.trim();
 
   if (!trimmed) {
@@ -41,10 +41,27 @@ export async function POST(
     return NextResponse.json({ error: "Animation not found." }, { status: 404 });
   }
 
+  if (parentId) {
+    const { data: parent } = await service
+      .from("comments")
+      .select("id")
+      .eq("id", parentId)
+      .eq("animation_id", animation.id)
+      .maybeSingle();
+    if (!parent) {
+      return NextResponse.json({ error: "Parent comment not found." }, { status: 404 });
+    }
+  }
+
   const { data: comment, error } = await service
     .from("comments")
-    .insert({ animation_id: animation.id, author_id: user.id, body: trimmed })
-    .select("id, body, created_at")
+    .insert({
+      animation_id: animation.id,
+      author_id: user.id,
+      parent_id: parentId ?? null,
+      body: trimmed,
+    })
+    .select("id, body, parent_id, created_at")
     .single();
 
   if (error) {

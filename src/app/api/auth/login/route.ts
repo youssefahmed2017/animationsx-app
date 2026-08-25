@@ -82,7 +82,19 @@ export async function POST(request: NextRequest) {
     options: { shouldCreateUser: false },
   });
   if (otpError) {
-    if (otpError.status === 429) {
+    // Log the real Supabase error server-side (status/code/message) — the
+    // client only ever sees a generic message, but "Could not send a
+    // confirmation code" with no further detail is undiagnosable from
+    // Vercel logs alone. Most non-429 failures here are the project's
+    // built-in email provider rejecting the send outright (e.g. no SMTP
+    // configured), not a bug in this code path.
+    console.error("signInWithOtp failed", {
+      status: otpError.status,
+      code: otpError.code,
+      message: otpError.message,
+    });
+
+    if (otpError.status === 429 || otpError.code === "over_email_send_rate_limit") {
       return NextResponse.json(
         {
           error:
@@ -92,7 +104,10 @@ export async function POST(request: NextRequest) {
         { status: 429 }
       );
     }
-    return NextResponse.json({ error: "Could not send a confirmation code." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not send a confirmation code. Please try again in a minute." },
+      { status: 500 }
+    );
   }
 
   const challengeResponse = NextResponse.json({

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import PasswordInput from "@/components/PasswordInput";
 import OtpInput from "@/components/OtpInput";
+import OAuthButtons from "@/components/OAuthButtons";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 const RATE_LIMITED_COOLDOWN_SECONDS = 90;
@@ -171,6 +172,8 @@ function LoginForm() {
       <p className="text-neutral-400 text-sm mb-6">
         New devices need an extra emailed code to confirm it&apos;s really you.
       </p>
+
+      <OAuthButtons next={next} />
 
       <form onSubmit={handleCredentialsSubmit} className="space-y-3">
         <input

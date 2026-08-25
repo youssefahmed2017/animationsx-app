@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useDebounced } from "@/lib/useDebounced";
 import PasswordInput from "@/components/PasswordInput";
+import OAuthButtons from "@/components/OAuthButtons";
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{3,24}$/;
 
@@ -92,6 +93,8 @@ export default function SignupPage() {
       <p className="text-neutral-400 text-sm mb-6">
         Publish and remix CSS-only animations.
       </p>
+
+      <OAuthButtons />
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>

@@ -10,7 +10,10 @@ import Avatar from "@/components/Avatar";
 import LikeButton from "@/components/LikeButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import AddCommentForm from "@/components/AddCommentForm";
-import DeleteCommentButton from "@/components/DeleteCommentButton";
+import CommentThread from "@/components/CommentThread";
+import { buildCommentTree } from "@/lib/commentTree";
+import { ALLOWED_REACTIONS, type ReactionEmoji } from "@/lib/reactions";
+import type { ReactionCounts } from "@/components/CommentReactions";
 
 export default async function AnimationPage({ params }: PageProps<"/anim/[slug]">) {
   const { slug } = await params;
@@ -59,10 +62,34 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
       : Promise.resolve({ data: null }),
     supabase
       .from("comments")
-      .select("id, body, created_at, author_id, profiles(username, avatar_url)")
+      .select("id, body, created_at, author_id, parent_id, profiles(username, avatar_url)")
       .eq("animation_id", animation.id)
       .order("created_at", { ascending: true }),
   ]);
+
+  const commentIds = (comments ?? []).map((c) => c.id);
+  const { data: reactionRows } = commentIds.length
+    ? await supabase
+        .from("comment_reactions")
+        .select("comment_id, emoji, user_id")
+        .in("comment_id", commentIds)
+    : { data: [] as { comment_id: string; emoji: string; user_id: string }[] };
+
+  const reactionsByComment = new Map<string, ReactionCounts>();
+  for (const row of reactionRows ?? []) {
+    const emoji = row.emoji as ReactionEmoji;
+    if (!ALLOWED_REACTIONS.includes(emoji)) continue;
+    const forComment = reactionsByComment.get(row.comment_id) ?? {};
+    const entry = forComment[emoji] ?? { count: 0, reactedByMe: false };
+    entry.count += 1;
+    if (user && row.user_id === user.id) entry.reactedByMe = true;
+    forComment[emoji] = entry;
+    reactionsByComment.set(row.comment_id, forComment);
+  }
+
+  const commentTree = buildCommentTree(
+    (comments ?? []).map((c) => ({ ...c, reactions: reactionsByComment.get(c.id) ?? {} }))
+  );
 
   // Fire-and-forget view count increment via the service client (bypasses RLS; no client-facing write policy exists).
   createServiceClient()
@@ -198,39 +225,17 @@ export default async function AnimationPage({ params }: PageProps<"/anim/[slug]"
           </p>
         )}
 
-        <ul className="mt-6 space-y-4">
-          {(comments ?? []).map((c) => {
-            const commentAuthor = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-            return (
-              <li key={c.id} className="flex gap-3">
-                <Avatar
-                  username={commentAuthor?.username ?? "?"}
-                  avatarUrl={commentAuthor?.avatar_url}
-                  size={28}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {commentAuthor?.username && (
-                      <Link href={`/u/${commentAuthor.username}`} className="text-sm font-medium hover:underline">
-                        {commentAuthor.username}
-                      </Link>
-                    )}
-                    <span className="text-xs text-neutral-500">
-                      {new Date(c.created_at).toLocaleDateString()}
-                    </span>
-                    {user?.id === c.author_id && <DeleteCommentButton id={c.id} />}
-                  </div>
-                  <p className="text-sm text-neutral-300 mt-0.5 whitespace-pre-wrap break-words">
-                    {c.body}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
+        <div className="mt-6">
+          <CommentThread
+            slug={animation.slug}
+            comments={commentTree}
+            currentUserId={user?.id}
+            signedIn={!!user}
+          />
           {comments && comments.length === 0 && (
-            <li className="text-sm text-neutral-500">No comments yet.</li>
+            <p className="text-sm text-neutral-500">No comments yet.</p>
           )}
-        </ul>
+        </div>
       </div>
     </div>
   );

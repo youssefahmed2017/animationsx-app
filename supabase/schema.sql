@@ -37,14 +37,42 @@ create index if not exists animations_category_idx on public.animations (categor
 create index if not exists animations_tags_idx on public.animations using gin (tags);
 
 -- Auto-create a profile row whenever a new auth user signs up.
+-- OAuth providers (GitHub/Google) don't populate raw_user_meta_data ->> 'username'
+-- the way email/password signup does — GitHub sets 'user_name' / 'preferred_username'
+-- instead, and neither is guaranteed unique against our existing usernames, so a
+-- naive insert would abort OAuth sign-in on any collision. This sanitizes and
+-- de-duplicates the candidate username, and carries over the provider's avatar.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  base_username text;
+  candidate text;
+  suffix int := 0;
 begin
-  insert into public.profiles (id, username)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'username', split_part(new.email, '@', 1)));
+  base_username := coalesce(
+    nullif(new.raw_user_meta_data ->> 'username', ''),
+    nullif(new.raw_user_meta_data ->> 'user_name', ''),
+    nullif(new.raw_user_meta_data ->> 'preferred_username', ''),
+    split_part(new.email, '@', 1)
+  );
+  -- USERNAME_PATTERN in src/lib/validateUsername.ts is /^[a-zA-Z0-9_-]{3,24}$/.
+  base_username := regexp_replace(base_username, '[^a-zA-Z0-9_-]', '', 'g');
+  base_username := left(base_username, 20); -- leave room for a "-<suffix>"
+  if length(base_username) < 3 then
+    base_username := rpad(base_username, 3, '0');
+  end if;
+
+  candidate := base_username;
+  while exists (select 1 from public.profiles where username = candidate) loop
+    suffix := suffix + 1;
+    candidate := left(base_username, 20) || '-' || suffix;
+  end loop;
+
+  insert into public.profiles (id, username, avatar_url)
+  values (new.id, candidate, new.raw_user_meta_data ->> 'avatar_url');
   return new;
 end;
 $$;
@@ -118,10 +146,22 @@ create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   animation_id uuid not null references public.animations (id) on delete cascade,
   author_id uuid not null references public.profiles (id) on delete cascade,
+  parent_id uuid references public.comments (id) on delete cascade,
   body text not null,
   created_at timestamptz not null default now()
 );
 create index if not exists comments_animation_id_idx on public.comments (animation_id);
+create index if not exists comments_parent_id_idx on public.comments (parent_id);
+
+create table if not exists public.comment_reactions (
+  id uuid primary key default gen_random_uuid(),
+  comment_id uuid not null references public.comments (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  emoji text not null check (emoji in ('👍', '❤️', '😂', '🎉', '👀')),
+  created_at timestamptz not null default now(),
+  unique (comment_id, user_id, emoji)
+);
+create index if not exists comment_reactions_comment_id_idx on public.comment_reactions (comment_id);
 
 create table if not exists public.follows (
   follower_id uuid not null references public.profiles (id) on delete cascade,
@@ -151,6 +191,7 @@ alter table public.animations enable row level security;
 alter table public.trusted_devices enable row level security;
 alter table public.animation_likes enable row level security;
 alter table public.comments enable row level security;
+alter table public.comment_reactions enable row level security;
 alter table public.follows enable row level security;
 alter table public.animation_favorites enable row level security;
 
@@ -183,6 +224,13 @@ create policy "Users can comment as themselves" on public.comments
   for insert with check (auth.uid() = author_id);
 create policy "Users can delete their own comments" on public.comments
   for delete using (auth.uid() = author_id);
+
+create policy "Reactions are publicly readable" on public.comment_reactions
+  for select using (true);
+create policy "Users can react as themselves" on public.comment_reactions
+  for insert with check (auth.uid() = user_id);
+create policy "Users can remove their own reaction" on public.comment_reactions
+  for delete using (auth.uid() = user_id);
 
 create policy "Follows are publicly readable" on public.follows
   for select using (true);
